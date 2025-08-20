@@ -18,7 +18,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
           aws-region: ap-south-1
       - name: Apply
-        working-directory: infra
+        working-directory: Terraform
         run: |
           terraform init -input=false
           terraform apply -auto-approve -input=false -var-file=envs/dev/terraform.tfvars
