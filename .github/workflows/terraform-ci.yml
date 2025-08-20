@@ -16,7 +16,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
           aws-region: ap-south-1
       - name: Fmt/Validate/Plan
-        working-directory: infra
+        working-directory: Terraform
         run: |
           terraform fmt -check
           terraform init -input=false
