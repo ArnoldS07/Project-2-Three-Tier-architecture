@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Three Tier App</title>
+  </head>
+  <body>
+    <h1>Three Tier App — Frontend</h1>
+    <p id="api"></p>
+    <script>
+      fetch((window.API_URL || "/api") + "/health").then(r=>r.json()).then(d=>{
+        document.getElementById('api').textContent = "Backend says: " + JSON.stringify(d);
+      }).catch(e=>{
+        document.getElementById('api').textContent = "Backend unreachable.";
+      });
+    </script>
+  </body>
+</html>

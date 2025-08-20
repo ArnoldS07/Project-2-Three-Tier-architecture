@@ -1,0 +1,32 @@
+name: Deploy to EC2 via SSM
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Image tag to deploy
+        required: true
+        default: latest
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Rolling update across ASG instances
+        env:
+          ASG_NAME: ${{ vars.ASG_NAME }}
+          TAG: ${{ github.event.inputs.tag }}
+        run: |
+          IDS=$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names "$ASG_NAME" --query 'AutoScalingGroups[0].Instances[].InstanceId' --output text)
+          for id in $IDS; do
+            aws ssm send-command               --instance-ids "$id"               --document-name "AWS-RunShellScript"               --parameters commands="[
+                "sed -i 's/:latest/:$TAG/g' /home/ec2-user/docker-compose.yml",
+                "docker compose -f /home/ec2-user/docker-compose.yml pull",
+                "docker compose -f /home/ec2-user/docker-compose.yml up -d --remove-orphans"
+              ]" >/dev/null
+          done

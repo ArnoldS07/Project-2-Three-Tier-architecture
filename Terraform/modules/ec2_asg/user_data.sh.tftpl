@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -eux
+
+# AL2023
+dnf update -y
+dnf install -y docker
+systemctl enable --now docker
+
+# SSM Agent is preinstalled on AL2023 AMIs
+
+# Login to ECR
+ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${region}.amazonaws.com
+
+# Runtime env
+cat >/home/ec2-user/app.env <<ENV
+DB_HOST=${db_host}
+DB_PORT=${db_port}
+DB_USER=${db_user}
+DB_PASSWORD=${db_pass}
+API_PORT=8080
+ENV
+
+# Compose file
+cat >/home/ec2-user/docker-compose.yml <<'YML'
+version: "3.9"
+services:
+  backend:
+    image: ${ecr_repo_backend}:latest
+    env_file: /home/ec2-user/app.env
+    ports: ["8080:8080"]
+  frontend:
+    image: ${ecr_repo_frontend}:latest
+    environment:
+      - API_URL=http://localhost:8080
+    ports: ["80:80"]
+YML
+
+docker compose -f /home/ec2-user/docker-compose.yml pull
+docker compose -f /home/ec2-user/docker-compose.yml up -d --remove-orphans

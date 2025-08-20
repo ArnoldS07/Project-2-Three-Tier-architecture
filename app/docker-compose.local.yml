@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    ports: ["5432:5432"]
+  backend:
+    build: ./backend
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    ports: ["8080:8080"]
+    depends_on: [db]
+  frontend:
+    build: ./frontend
+    environment:
+      - API_URL=http://localhost:8080
+    ports: ["3000:80"]
+    depends_on: [backend]
