@@ -62,26 +62,31 @@ jobs:
     needs: terraform-apply
     runs-on: ubuntu-latest
     steps:
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
-          aws-region: ap-south-1
-      - name: Rolling update across ASG instances
-        env:
-          ASG_NAME: ${{ vars.ASG_NAME }}
-          TAG: latest   # always latest on main, or use commit SHA
-        run: |
-          IDS=$(aws autoscaling describe-auto-scaling-groups \
-            --auto-scaling-group-names "$ASG_NAME" \
-            --query 'AutoScalingGroups[0].Instances[].InstanceId' \
-            --output text)
-          for id in $IDS; do
-            aws ssm send-command \
-              --instance-ids "$id" \
-              --document-name "AWS-RunShellScript" \
-              --parameters commands="[ 
-                \"sed -i 's/:latest/:$TAG/g' /home/ec2-user/docker-compose.yml\",
-                \"docker compose -f /home/ec2-user/docker-compose.yml pull\",
-                \"docker compose -f /home/ec2-user/docker-compose.yml up -d --remove-orphans\" 
-              ]" >/dev/null
-          done
+    - uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
+        aws-region: ap-south-1
+
+    - name: Rolling update across ASG instances
+      env:
+        ASG_NAME: three-tier-app-asg   
+        TAG: latest                   
+      run: |
+        IDS=$(aws autoscaling describe-auto-scaling-groups \
+          --auto-scaling-group-names "$ASG_NAME" \
+          --query 'AutoScalingGroups[0].Instances[].InstanceId' \
+          --output text)
+        if [ -z "$IDS" ]; then
+          echo "No instances found in ASG $ASG_NAME"
+          exit 0
+        fi
+        for id in $IDS; do
+          aws ssm send-command \
+            --instance-ids "$id" \
+            --document-name "AWS-RunShellScript" \
+            --parameters commands="[ 
+              \"sed -i 's/:latest/:$TAG/g' /home/ec2-user/docker-compose.yml\",
+              \"docker compose -f /home/ec2-user/docker-compose.yml pull\",
+              \"docker compose -f /home/ec2-user/docker-compose.yml up -d --remove-orphans\" 
+            ]" >/dev/null
+        done
