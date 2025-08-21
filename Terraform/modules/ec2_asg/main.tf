@@ -4,7 +4,7 @@ data "aws_ssm_parameter" "al2023_ami" {
 
 resource "aws_launch_template" "this" {
   name_prefix             = "${var.name}-lt-"
-  image_id                = data.aws_ssm_parameter.ubuntu_ami.value
+  image_id                = data.aws_ssm_parameter.al2023_ami.value
   instance_type           = var.instance_type
   vpc_security_group_ids  = [var.app_sg_id]
   key_name                = var.key_name
