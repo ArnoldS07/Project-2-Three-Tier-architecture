@@ -33,6 +33,9 @@ jobs:
 
       - name: Terraform Init
         run: terraform init -input=false
+      - name: Terraform Init
+        run: terraform init -input=false -backend-config=envs/dev/backend.hcl
+
 
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file=envs/dev/terraform.tfvars
