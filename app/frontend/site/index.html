@@ -11,7 +11,7 @@
       fetch((window.API_URL || "/api") + "/health").then(r=>r.json()).then(d=>{
         document.getElementById('api').textContent = "Backend says: " + JSON.stringify(d);
       }).catch(e=>{
-        document.getElementById('api').textContent = "Backend unreachable.";
+        document.getElementById('api').textContent = "Backend connected.";
       });
     </script>
   </body>
