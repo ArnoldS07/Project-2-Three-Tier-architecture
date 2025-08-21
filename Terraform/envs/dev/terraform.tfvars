@@ -9,4 +9,4 @@ ecr_repo_frontend = "412353802976.dkr.ecr.ap-south-1.amazonaws.com/three-tier-fr
 ecr_repo_backend  = "412353802976.dkr.ecr.ap-south-1.amazonaws.com/three-tier-backend"
 
 # Provide a secure value before apply (or use TF_VAR_db_password env var)
-db_password       = "nckd7bM9gYtqqTi"
+db_password       = "nckd7bM9gYtqqTg"
