@@ -69,24 +69,29 @@ jobs:
 
     - name: Rolling update across ASG instances
       env:
-        ASG_NAME: three-tier-app-asg   
-        TAG: latest                   
+        ASG_NAME: three-tier-app-asg
+        TAG: latest
       run: |
         IDS=$(aws autoscaling describe-auto-scaling-groups \
           --auto-scaling-group-names "$ASG_NAME" \
           --query 'AutoScalingGroups[0].Instances[].InstanceId' \
           --output text)
-        if [ -z "$IDS" ]; then
+
+        # Exit if no instances found or if IDS contains 'None'
+        if [ -z "$IDS" ] || [ "$IDS" = "None" ]; then
           echo "No instances found in ASG $ASG_NAME"
           exit 0
         fi
+
         for id in $IDS; do
-          aws ssm send-command \
-            --instance-ids "$id" \
-            --document-name "AWS-RunShellScript" \
-            --parameters commands="[ 
-              \"sed -i 's/:latest/:$TAG/g' /home/ec2-user/docker-compose.yml\",
-              \"docker compose -f /home/ec2-user/docker-compose.yml pull\",
-              \"docker compose -f /home/ec2-user/docker-compose.yml up -d --remove-orphans\" 
-            ]" >/dev/null
+          if [ "$id" != "None" ]; then
+            aws ssm send-command \
+              --instance-ids "$id" \
+              --document-name "AWS-RunShellScript" \
+              --parameters commands="[ 
+                \"sed -i 's/:latest/:$TAG/g' /home/ec2-user/docker-compose.yml\",
+                \"docker compose -f /home/ec2-user/docker-compose.yml pull\",
+                \"docker compose -f /home/ec2-user/docker-compose.yml up -d --remove-orphans\" 
+              ]" >/dev/null
+          fi
         done
