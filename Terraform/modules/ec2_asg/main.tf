@@ -3,12 +3,14 @@ data "aws_ssm_parameter" "al2023_ami" {
 }
 
 resource "aws_launch_template" "this" {
-  name_prefix   = "${var.name}-lt-"
-  image_id      = data.aws_ssm_parameter.al2023_ami.value
-  instance_type = var.instance_type
-  vpc_security_group_ids = [var.app_sg_id]
+  name_prefix             = "${var.name}-lt-"
+  image_id                = data.aws_ssm_parameter.al2023_ami.value
+  instance_type           = var.instance_type
+  vpc_security_group_ids  = [var.app_sg_id]
 
-  iam_instance_profile { name = var.iam_instance_profile }
+  iam_instance_profile {
+    name = var.iam_instance_profile
+  }
 
   user_data = base64encode(
     templatefile("${path.module}/user_data.sh.tftpl", {
@@ -21,9 +23,12 @@ resource "aws_launch_template" "this" {
       db_port           = var.db_port
     })
   )
+
   tag_specifications {
     resource_type = "instance"
-    tags = { Name = "${var.name}-app" }
+    tags = {
+      Name = "${var.name}-app"
+    }
   }
 }
 
@@ -34,7 +39,10 @@ resource "aws_autoscaling_group" "this" {
   min_size            = var.desired_capacity
   vpc_zone_identifier = var.private_app_subnets
 
-  launch_template { id = aws_launch_template.this.id version = "$Latest" }
+  launch_template {
+    id      = aws_launch_template.this.id
+    version = "$Latest"
+  }
 
   target_group_arns = [var.alb_tg_arn]
   health_check_type = "EC2"
