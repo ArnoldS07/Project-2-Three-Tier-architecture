@@ -69,7 +69,7 @@ jobs:
 
     - name: Rolling update across ASG instances
       env:
-        ASG_NAME: three-tier-app-asg
+        ASG_NAME: three-tier-dev-asg
         TAG: latest
       run: |
         IDS=$(aws autoscaling describe-auto-scaling-groups \
