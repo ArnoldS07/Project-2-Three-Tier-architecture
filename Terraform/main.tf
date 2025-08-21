@@ -41,6 +41,7 @@ module "ec2" {
   db_user              = var.db_username
   db_pass              = var.db_password
   db_port              = 5432
+  key_name            = var.key_name  
 }
 
 module "rds" {
