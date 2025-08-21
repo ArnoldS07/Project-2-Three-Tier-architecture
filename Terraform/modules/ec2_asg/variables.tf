@@ -53,3 +53,8 @@ variable "db_pass" {
 variable "db_port" {
   type = number
 }
+variable "key_name" {
+  type        = string
+  description = "The name of the EC2 Key Pair to enable SSH access"
+}
+
