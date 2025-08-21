@@ -1,18 +1,29 @@
 #!/usr/bin/env bash
 set -eux
 
-# Update & install Docker
-dnf update -y
-dnf install -y docker
-systemctl enable --now docker
+# Update & install Docker on Ubuntu
+sudo apt update -y
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+# Add Docker’s official GPG key and repo
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt update -y
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+sudo systemctl enable --now docker
 
 # Login to ECR
 ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
-aws ecr get-login-password --region ${region} \
-  | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.${region}.amazonaws.com
+aws ecr get-login-password --region "${region}" \
+  | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.${region}.amazonaws.com"
 
 # Runtime environment
-cat >/home/ec2-user/app.env <<ENV
+cat >/home/ubuntu/app.env <<ENV
 DB_HOST=${db_host}
 DB_PORT=${db_port}
 DB_USER=${db_user}
@@ -21,12 +32,12 @@ API_PORT=8080
 ENV
 
 # Docker Compose file
-cat >/home/ec2-user/docker-compose.yml <<YML
+cat >/home/ubuntu/docker-compose.yml <<YML
 version: "3.9"
 services:
   backend:
     image: ${ecr_repo_backend}:latest
-    env_file: /home/ec2-user/app.env
+    env_file: /home/ubuntu/app.env
     ports:
       - "8080:8080"
   frontend:
@@ -37,5 +48,6 @@ services:
       - "80:80"
 YML
 
-docker compose -f /home/ec2-user/docker-compose.yml pull
-docker compose -f /home/ec2-user/docker-compose.yml up -d --remove-orphans
+# Run Docker Compose
+sudo docker compose -f /home/ubuntu/docker-compose.yml pull
+sudo docker compose -f /home/ubuntu/docker-compose.yml up -d --remove-orphans
