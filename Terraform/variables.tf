@@ -72,3 +72,9 @@ variable "ecr_repo_frontend" {
 variable "ecr_repo_backend" {
   type = string
 }
+
+variable "key_name" {
+  description = "Key pair name for SSH access to EC2 instances"
+  type        = string
+}
+
