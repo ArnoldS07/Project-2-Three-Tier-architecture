@@ -28,8 +28,8 @@ jobs:
       - uses: aws-actions/amazon-ecr-login@v2
       - name: Build & Push
         env:
-          ECR_FE: ${{ vars.ECR_REPO_FRONTEND }}
-          ECR_BE: ${{ vars.ECR_REPO_BACKEND }}
+          ECR_FE: 412353802976.dkr.ecr.ap-south-1.amazonaws.com/three-tier-frontend
+          ECR_BE: 412353802976.dkr.ecr.ap-south-1.amazonaws.com/three-tier-backend
           COMMIT: ${{ github.sha }}
         run: |
           docker build -t $ECR_FE:latest -t $ECR_FE:$COMMIT ./app/frontend
