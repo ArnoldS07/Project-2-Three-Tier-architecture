@@ -7,7 +7,7 @@ resource "aws_launch_template" "this" {
   image_id                = data.aws_ssm_parameter.al2023_ami.value
   instance_type           = var.instance_type
   vpc_security_group_ids  = [var.app_sg_id]
-  key_name                = var.key_name
+  key_name                = "my-key"
 
   iam_instance_profile {
     name = var.iam_instance_profile
