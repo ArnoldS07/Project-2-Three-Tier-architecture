@@ -15,15 +15,15 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
     ports:
-      - "8080:8080"   # ALB will route to 8080 on EC2
+      - "8080:8080"   # expose for internal use
     depends_on:
       - db
 
   frontend:
     build: ./frontend
     environment:
-      API_URL: http://backend:8080   # container-to-container URL
+      API_URL: http://backend:8080  # container-to-container
     ports:
-      - "80:80"    # Expose port 80 for ALB
+      - "80:80"  # ALB target port
     depends_on:
       - backend
