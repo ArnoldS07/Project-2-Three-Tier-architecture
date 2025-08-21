@@ -18,10 +18,10 @@ resource "aws_internet_gateway" "igw" {
 
 # Public subnets (for ALB + NAT)
 resource "aws_subnet" "public" {
-  for_each = { for idx, az in toset(var.azs) : idx => az }
+  for_each = { for idx, az in var.azs : idx => az }
 
   vpc_id                  = aws_vpc.this.id
-  cidr_block              = cidrsubnet(var.vpc_cidr, 4, tonumber(each.key)) # 10.1.0.0/20, 10.1.16.0/20
+  cidr_block              = cidrsubnet(var.vpc_cidr, 4, each.key) # index-based
   availability_zone       = each.value
   map_public_ip_on_launch = true
 
@@ -35,7 +35,7 @@ resource "aws_subnet" "private_app" {
   for_each = { for idx, az in var.azs : idx => az }
 
   vpc_id            = aws_vpc.this.id
-  cidr_block        = cidrsubnet(var.vpc_cidr, 4, each.key + 2) # safe numeric index
+  cidr_block        = cidrsubnet(var.vpc_cidr, 4, each.key + 2) # offset by +2
   availability_zone = each.value
 
   tags = {
@@ -44,19 +44,17 @@ resource "aws_subnet" "private_app" {
 }
 
 # Private db subnets
-# Private db subnets
 resource "aws_subnet" "private_db" {
   for_each = { for idx, az in var.azs : idx => az }
 
   vpc_id            = aws_vpc.this.id
-  cidr_block        = cidrsubnet(var.vpc_cidr, 4, each.key + 4) # now each.key is numeric
+  cidr_block        = cidrsubnet(var.vpc_cidr, 4, each.key + 4) # offset by +4
   availability_zone = each.value
 
   tags = {
     Name = "${var.name}-private-db-${each.value}"
   }
 }
-
 
 # NAT: single NAT for cost-efficiency
 resource "aws_eip" "nat" {
