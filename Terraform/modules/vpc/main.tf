@@ -44,18 +44,19 @@ resource "aws_subnet" "private_app" {
 }
 
 # Private db subnets
+# Private db subnets
 resource "aws_subnet" "private_db" {
   for_each = { for idx, az in var.azs : idx => az }
 
   vpc_id            = aws_vpc.this.id
   cidr_block        = cidrsubnet(var.vpc_cidr, 4, each.key + 4) # now each.key is numeric
   availability_zone = each.value
-}
 
   tags = {
     Name = "${var.name}-private-db-${each.value}"
   }
 }
+
 
 # NAT: single NAT for cost-efficiency
 resource "aws_eip" "nat" {
