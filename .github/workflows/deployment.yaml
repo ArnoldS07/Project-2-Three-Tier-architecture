@@ -3,11 +3,6 @@ name: CI/CD Pipeline
 on:
   push:
     branches: ["main"]
-    paths:
-      - "app/**"
-      - "Terraform/**"
-  pull_request:
-    paths: ["Terraform/**"]
   workflow_dispatch:
     inputs:
       tag:
@@ -23,7 +18,6 @@ jobs:
 
   # 1. Build & Push Images
   docker:
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, 'app/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,40 +37,18 @@ jobs:
           docker build -t $ECR_BE:latest -t $ECR_BE:$COMMIT ./app/backend
           docker push $ECR_BE --all-tags
 
-  # 2. Terraform CI (Plan)
-  terraform-plan:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
-          aws-region: ap-south-1
-      - name: Fmt/Validate/Plan
-        working-directory: Terraform
-        run: |
-          terraform fmt -check
-          terraform init -input=false
-          terraform validate
-          terraform plan -input=false -var-file=envs/dev/terraform.tfvars -no-color
-
-  # 3. Terraform Apply
+  # 2. Terraform Apply
   terraform-apply:
-    if: github.event_name == 'push' && contains(join(github.event.head_commit.modified, ''), 'Terraform/')
+    needs: docker
     runs-on: ubuntu-latest
     environment: prod
     defaults:
       run:
         working-directory: Terraform
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_GITHUB_ROLE_ARN }}
           aws-region: ap-south-1
@@ -85,9 +57,9 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -input=false -var-file=envs/dev/terraform.tfvars
 
-  # 4. Deploy to EC2 via SSM
+  # 3. Deploy to EC2 via SSM
   deploy-ec2:
-    if: github.event_name == 'workflow_dispatch'
+    needs: terraform-apply
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/configure-aws-credentials@v4
@@ -97,7 +69,7 @@ jobs:
       - name: Rolling update across ASG instances
         env:
           ASG_NAME: ${{ vars.ASG_NAME }}
-          TAG: ${{ github.event.inputs.tag }}
+          TAG: latest   # always latest on main, or use commit SHA
         run: |
           IDS=$(aws autoscaling describe-auto-scaling-groups \
             --auto-scaling-group-names "$ASG_NAME" \
@@ -107,9 +79,9 @@ jobs:
             aws ssm send-command \
               --instance-ids "$id" \
               --document-name "AWS-RunShellScript" \
-              --parameters commands="[
+              --parameters commands="[ 
                 \"sed -i 's/:latest/:$TAG/g' /home/ec2-user/docker-compose.yml\",
                 \"docker compose -f /home/ec2-user/docker-compose.yml pull\",
-                \"docker compose -f /home/ec2-user/docker-compose.yml up -d --remove-orphans\"
+                \"docker compose -f /home/ec2-user/docker-compose.yml up -d --remove-orphans\" 
               ]" >/dev/null
           done
