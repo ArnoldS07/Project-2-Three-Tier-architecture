@@ -32,10 +32,10 @@ resource "aws_subnet" "public" {
 
 # Private app subnets
 resource "aws_subnet" "private_app" {
-  for_each = { for idx, az in toset(var.azs) : idx => az }
+  for_each = { for idx, az in var.azs : idx => az }
 
   vpc_id            = aws_vpc.this.id
-  cidr_block        = cidrsubnet(var.vpc_cidr, 4, tonumber(each.key) + 2) # next blocks
+  cidr_block        = cidrsubnet(var.vpc_cidr, 4, each.key + 2) # safe numeric index
   availability_zone = each.value
 
   tags = {
