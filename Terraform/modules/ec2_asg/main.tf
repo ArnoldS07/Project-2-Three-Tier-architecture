@@ -8,10 +8,13 @@ resource "aws_launch_template" "this" {
   instance_type           = var.instance_type
   vpc_security_group_ids  = [var.app_sg_id]
 
+  # Add your key pair here
+  key_name = var.key_name   # pass the key name via variable
+
   iam_instance_profile {
     name = var.iam_instance_profile
   }
-
+}
   user_data = base64encode(
     templatefile("${path.module}/user_data.sh.tftpl", {
       region            = var.region
