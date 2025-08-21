@@ -3,20 +3,27 @@ services:
   db:
     image: postgres:15
     environment:
-      - POSTGRES_PASSWORD=postgres
-    ports: ["5432:5432"]
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+
   backend:
     build: ./backend
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-    ports: ["8080:8080"]
-    depends_on: [db]
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    ports:
+      - "8080:8080"   # ALB will route to 8080 on EC2
+    depends_on:
+      - db
+
   frontend:
     build: ./frontend
     environment:
-      - API_URL=http://localhost:8080
-    ports: ["3000:80"]
-    depends_on: [backend]
+      API_URL: http://backend:8080   # container-to-container URL
+    ports:
+      - "80:80"    # Expose port 80 for ALB
+    depends_on:
+      - backend
